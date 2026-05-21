@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#00A651;
+    --green2:#007A3D;
+    --green3:#00C261;
+    --light:#F0FFF5;
+    --white:#FFFFFF;
+    --dark:#0A1A0F;
+    --dark2:#122018;
+    --muted:#6B8F71;
+    --border:rgba(0,166,81,0.15);
+    --bubble-ai:#E8FFF0;
+    --bubble-user:#00A651;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--dark);color:var(--white);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* SPLASH */
+  .splash{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.6s;}
+  .splash.hide{opacity:0;pointer-events:none;}
+  .splash-logo-wrap{position:relative;margin-bottom:24px;}
+  .splash-ring{width:100px;height:100px;border-radius:50%;border:3px solid rgba(0,166,81,0.3);border-top-color:var(--green);animation:spin 1s linear infinite;position:absolute;inset:-10px;}
+  .splash-icon{width:80px;height:80px;background:linear-gradient(135deg,var(--green),var(--green2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;}
+  .splash-name{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:var(--white);letter-spacing:2px;}
+  .splash-tag{color:var(--green3);font-size:14px;margin-top:4px;letter-spacing:1px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* HEADER */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--dark2);border-bottom:1px solid var(--border);position:relative;z-index:10;}
+  .header-left{display:flex;align-items:center;gap:10px;}
+  .nova-avatar{width:40px;height:40px;background:linear-gradient(135deg,var(--green),var(--green2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .nova-info{}
+  .nova-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--white);}
+  .nova-status{font-size:11px;color:var(--green3);display:flex;align-items:center;gap:4px;}
+  .status-dot{width:6px;height:6px;background:var(--green3);border-radius:50%;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .header-right{display:flex;gap:8px;}
+  .header-btn{background:rgba(0,166,81,0.1);border:1px solid var(--border);color:var(--white);border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .header-btn:active{background:rgba(0,166,81,0.2);}
+
+  /* QUICK ACTIONS */
+  .quick-actions{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;background:var(--dark2);border-bottom:1px solid var(--border);}
+  .quick-actions::-webkit-scrollbar{display:none;}
+  .qa-btn{background:rgba(0,166,81,0.08);border:1px solid var(--border);color:var(--white);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all 0.2s;flex-shrink:0;}
+  .qa-btn:active{background:rgba(0,166,81,0.25);border-color:var(--green);}
+
+  /* CHAT */
+  .chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
+  .chat::-webkit-scrollbar{display:none;}
+
+  /* MESSAGES */
+  .msg-row{display:flex;gap:10px;align-items:flex-end;}
+  .msg-row.user{flex-direction:row-reverse;}
+  .msg-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .msg-avatar.ai{background:linear-gradient(135deg,var(--green),var(--green2));}
+  .msg-avatar.user{background:rgba(255,255,255,0.1);font-size:16px;}
+  .msg-bubble{max-width:78%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55;}
+  .msg-bubble.ai{background:var(--dark2);border:1px solid var(--border);color:var(--white);border-bottom-left-radius:4px;}
+  .msg-bubble.user{background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+  .msg-time{font-size:10px;color:var(--muted);margin-top:4px;text-align:right;}
+  .msg-time.ai-time{text-align:left;}
+
+  /* TYPING */
+  .typing-row{display:flex;gap:10px;align-items:flex-end;}
+  .typing-bubble{background:var(--dark2);border:1px solid var(--border);border-radius:18px;border-bottom-left-radius:4px;padding:14px 18px;display:flex;gap:5px;align-items:center;}
+  .typing-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:bounce 1.2s infinite;}
+  .typing-dot:nth-child(2){animation-delay:0.2s;}
+  .typing-dot:nth-child(3){animation-delay:0.4s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
+
+  /* WELCOME CARD */
+  .welcome-card{background:var(--dark2);border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center;margin-bottom:4px;}
+  .welcome-emoji{font-size:48px;margin-bottom:12px;}
+  .welcome-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:6px;}
+  .welcome-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+  .welcome-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .welcome-chip{background:rgba(0,166,81,0.1);border:1px solid var(--border);color:var(--green3);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;}
+  .welcome-chip:active{background:rgba(0,166,81,0.2);}
+
+  /* INPUT */
+  .input-area{padding:10px 14px 20px;background:var(--dark2);border-top:1px solid var(--border);}
+  .input-row{display:flex;gap:10px;align-items:flex-end;background:var(--dark);border:1px solid var(--border);border-radius:16px;padding:8px 10px 8px 16px;}
+  .input-row:focus-within{border-color:var(--green);}
+  .msg-input{flex:1;background:none;border:none;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:none;max-height:100px;line-height:1.5;}
+  .msg-input::placeholder{color:var(--muted);}
+  .send-btn{width:38px;height:38px;background:linear-gradient(135deg,var(--green),var(--green2));border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.15s;}
+  .send-btn:active{transform:scale(0.9);}
+  .send-btn svg{width:18px;height:18px;fill:#fff;}
+  .input-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;}
+
+  /* SIDEBAR */
+  .sidebar{position:fixed;inset:0;z-index:200;display:flex;}
+  .sidebar.hidden{display:none;}
+  .sidebar-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);}
+  .sidebar-panel{position:relative;width:280px;background:var(--dark2);height:100%;border-right:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform 0.3s;}
+  .sidebar.open .sidebar-panel{transform:translateX(0);}
+  .sidebar-header{padding:20px 16px;border-bottom:1px solid var(--border);}
+  .sidebar-logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--white);}
+  .sidebar-logo span{color:var(--green3);}
+  .sidebar-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .sidebar-section{padding:14px 16px;}
+  .sidebar-section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+  .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--white);font-size:14px;margin-bottom:4px;}
+  .sidebar-item:active{background:rgba(0,166,81,0.1);}
+  .sidebar-item-icon{font-size:18px;width:24px;text-align:center;}
+  .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+  .sidebar-badge{background:rgba(0,166,81,0.1);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+  .sidebar-badge-title{font-size:13px;font-weight:600;color:var(--green3);margin-bottom:4px;}
+  .sidebar-badge-sub{font-size:11px;color:var(--muted);}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark2);color:#fff;border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;z-index:999;transition:all 0.3s;border:1px solid var(--border);pointer-events:none;opacity:0;white-space:nowrap;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+  /* CODE BLOCK */
+  .code-block{background:#0d1f14;border:1px solid var(--border);border-radius:10px;padding:12px;margin:8px 0;font-family:monospace;font-size:12px;color:#a8ff78;overflow-x:auto;white-space:pre-wrap;}
+
+  /* NIGERIA FLAG COLORS subtle accent */
+  .ng-accent{display:flex;gap:2px;margin-top:6px;}
+  .ng-bar{height:3px;border-radius:2px;flex:1;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo-wrap">
+    <div class="splash-ring"></div>
+    <div class="splash-icon">🤖</div>
+  </div>
+  <div style="margin-top:16px;text-align:center;">
+    <div class="splash-name">NOVA</div>
+    <div class="splash-tag">YOUR PERSONAL AI • 🇳🇬 MADE FOR 234</div>
+    <div class="ng-accent" style="margin-top:10px;width:120px;margin-left:auto;margin-right:auto;">
+      <div class="ng-bar" style="background:#008751;"></div>
+      <div class="ng-bar" style="background:#ffffff;"></div>
+      <div class="ng-bar" style="background:#008751;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar hidden" id="sidebar">
+  <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar-panel">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">NO<span>VA</span></div>
+      <div class="sidebar-sub">Your Personal AI Assistant 🇳🇬</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Menu</div>
+      <div class="sidebar-item" onclick="newChat()">
+        <span class="sidebar-item-icon">✨</span> New Chat
+      </div>
+      <div class="sidebar-item" onclick="closeSidebar();showToast('Coming soon!')">
+        <span class="sidebar-item-icon">📜</span> Chat History
+      </div>
+      <div class="sidebar-item" onclick="closeSidebar();showToast('Coming soon!')">
+        <span class="sidebar-item-icon">⚙️</span> Settings
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Nova Can Help With</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">📚</span> School & Education</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">💰</span> Business & Money</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">💻</span> Coding & Tech</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">😂</span> Fun & Entertainment</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">🇳🇬</span> Nigerian Topics</div>
+      <div class="sidebar-item"><span class="sidebar-item-icon">🌍</span> News & World Events</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-badge">
+        <div class="sidebar-badge-title">🤖 Nova AI v1.0</div>
+        <div class="sidebar-badge-sub">Built for 234 🇳🇬 • Powered by Claude</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <button class="header-btn" onclick="openSidebar()" style="padding:6px 10px;font-size:16px;">☰</button>
+    <div class="nova-avatar">🤖</div>
+    <div class="nova-info">
+      <div class="nova-name">Nova</div>
+      <div class="nova-status"><div class="status-dot"></div> Online • Ready</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="header-btn" onclick="newChat()">New Chat</button>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="quick-actions">
+  <button class="qa-btn" onclick="quickAsk('What can you help me with?')">🤖 What can you do?</button>
+  <button class="qa-btn" onclick="quickAsk('Give me a business idea I can start in Nigeria with small capital')">💰 Business ideas</button>
+  <button class="qa-btn" onclick="quickAsk('Help me with my school assignment')">📚 School help</button>
+  <button class="qa-btn" onclick="quickAsk('Tell me something funny in Nigerian style')">😂 Make me laugh</button>
+  <button class="qa-btn" onclick="quickAsk('What is happening in Nigeria today?')">🇳🇬 Nigeria news</button>
+  <button class="qa-btn" onclick="quickAsk('Help me write a professional CV')">📄 Write my CV</button>
+  <button class="qa-btn" onclick="quickAsk('Teach me how to code a website')">💻 Learn coding</button>
+  <button class="qa-btn" onclick="quickAsk('How can I make money online in Nigeria?')">💸 Make money online</button>
+</div>
+
+<!-- CHAT -->
+<div class="chat" id="chat">
+  <div class="welcome-card">
+    <div class="welcome-emoji">🤖</div>
+    <div class="welcome-title">Hey! I'm Nova 👋</div>
+    <div class="welcome-sub">Your personal AI assistant built for Nigerians 🇳🇬<br>Ask me anything — school, business, coding, fun, and more!</div>
+    <div class="welcome-chips">
+      <div class="welcome-chip" onclick="quickAsk('Who are you?')">Who are you?</div>
+      <div class="welcome-chip" onclick="quickAsk('Tell me a Nigerian joke')">Nigerian joke 😂</div>
+      <div class="welcome-chip" onclick="quickAsk('How can I start a business in Nigeria?')">Start a business</div>
+      <div class="welcome-chip" onclick="quickAsk('Help me study for my exams')">Study help 📚</div>
+      <div class="welcome-chip" onclick="quickAsk('Write me a poem about Nigeria')">Nigeria poem 🇳🇬</div>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT -->
+<div class="input-area">
+  <div class="input-row">
+    <textarea class="msg-input" id="msgInput" placeholder="Ask Nova anything..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+    </button>
+  </div>
+  <div class="input-hint">Nova is your personal AI 🇳🇬 • Powered by Claude</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_KEY = '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';
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+const NOVA_SYSTEM = `You are Nova, a highly intelligent and friendly personal AI assistant built specifically for Nigerians (234). 
+
+Your personality:
+- Warm, friendly and relatable like a smart Nigerian friend
+- You understand Nigerian culture, slang, and context deeply
+- You're knowledgeable about Nigeria - economy, politics, food, culture, entertainment
+- You can help with ANYTHING: school assignments, business ideas, coding, writing, math, science, creative work, advice, fun, jokes, and more
+- You're honest and direct but always respectful
+- You occasionally use light Nigerian expressions naturally (like "omo", "e go better", "na so e be") but mostly speak clear English
+- You're encouraging and supportive
+- You know about Naira, Nigerian cities, JAMB, WAEC, NYSC, CBN, and all Nigerian-specific topics
+- You can write code, essays, CVs, business plans, and any document
+- You give practical advice suited to the Nigerian context
+- You're always helpful, never refuse reasonable requests
+- When asked about news or current events, acknowledge your knowledge cutoff but provide context
+
+Always introduce yourself as Nova when asked who you are.
+Keep responses clear, well structured, and helpful.
+Use emojis naturally to make responses engaging.`;
+
+let messages = [];
+let isTyping = false;
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(() => document.getElementById('splash').style.display = 'none', 600);
+  }, 2000);
+});
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function quickAsk(text) {
+  document.getElementById('msgInput').value = text;
+  sendMessage();
+}
+
+function newChat() {
+  messages = [];
+  const chat = document.getElementById('chat');
+  chat.innerHTML = `
+    <div class="welcome-card">
+      <div class="welcome-emoji">🤖</div>
+      <div class="welcome-title">New Chat Started! ✨</div>
+      <div class="welcome-sub">What can I help you with today? 🇳🇬</div>
+      <div class="welcome-chips">
+        <div class="welcome-chip" onclick="quickAsk('Who are you?')">Who are you?</div>
+        <div class="welcome-chip" onclick="quickAsk('Tell me a Nigerian joke')">Nigerian joke 😂</div>
+        <div class="welcome-chip" onclick="quickAsk('How can I start a business in Nigeria?')">Start a business</div>
+        <div class="welcome-chip" onclick="quickAsk('Help me study for my exams')">Study help 📚</div>
+      </div>
+    </div>`;
+  closeSidebar();
+  showToast('✨ New chat started!');
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Add user message
+  addMessage('user', text);
+  messages.push({ role: 'user', content: text });
+
+  // Show typing
+  showTyping();
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama3-8b-8192',
+        messages: [
+          {role: 'system', content: NOVA_SYSTEM},
+          ...messages
+        ],
+        max_tokens: 1024,
+        temperature: 0.8
+      })
+    });
+
+    const data = await response.json();
+    hideTyping();
+
+    if(data.error){
+      const errMsg = '❌ API Error: ' + data.error.message;
+      addMessage('ai', errMsg);
+      messages.push({role:'assistant', content: errMsg});
+    } else {
+      const reply = data.choices[0].message.content;
+      addMessage('ai', reply);
+      messages.push({role:'assistant', content: reply});
+    }
+  } catch(e) {
+    hideTyping();
+    addMessage('ai', '❌ Connection Error: ' + e.message + ' — Please check your internet!');
+    messages.push({role:'assistant', content: 'error'});
+  }
+
+  scrollToBottom();
+}
+
+function getFallback(text) {
+  const t = text.toLowerCase();
+
+  if (t.includes('who are you') || t.includes('what are you')) {
+    return "I'm **Nova** 🤖 — your personal AI assistant built for Nigerians! 🇳🇬\n\nI can help you with:\n• 📚 School & assignments\n• 💰 Business & money ideas\n• 💻 Coding & tech\n• 😂 Fun & jokes\n• 🌍 News & general knowledge\n• 📄 Writing CVs, essays, anything!\n\nTo unlock my full power, add your Anthropic API key! But I can still help with many things right now. What do you need? 😊";
+  }
+  if (t.includes('joke') || t.includes('funny') || t.includes('laugh')) {
+    const jokes = [
+      "Why did the Nigerian student fail his exam? Because the lecturer said 'open book' exam and he forgot to bring his account balance! 😂\n\nOmo e no easy for this country!",
+      "A Nigerian, an American and a British man were asked 'what is 2+2?'\n\nThe American said '4'\nThe British said '4'\nThe Nigerian said 'Oga which one? The official rate or the black market rate?' 😂🇳🇬",
+      "NEPA brought light for 5 minutes and a Nigerian completed his PhD thesis, charged 3 phones, watched a movie and cooked rice! 😂\n\nWe are built different bro!"
+    ];
+    return jokes[Math.floor(Math.random() * jokes.length)];
+  }
+  if (t.includes('business') || t.includes('money') || t.includes('income')) {
+    return "Great question! 💰 Here are some business ideas you can start in Nigeria with small capital:\n\n1. **Freelancing** - Graphic design, writing, coding on Fiverr/Upwork 💻\n2. **Mini importation** - Buy from China, sell in Nigeria 📦\n3. **Food business** - Smallchops, jollof rice catering 🍚\n4. **Social media management** - Manage accounts for businesses 📱\n5. **POS business** - Very lucrative in Nigeria right now 💳\n6. **Tutoring** - Teach JAMB, WAEC subjects online 📚\n7. **Content creation** - YouTube, TikTok with Nigerian content 🎬\n\nWhich one interests you? I can give you a full business plan! 🚀";
+  }
+  if (t.includes('school') || t.includes('study') || t.includes('exam') || t.includes('jamb') || t.includes('waec')) {
+    return "I'm here to help with your studies! 📚\n\nI can assist you with:\n• **JAMB/WAEC** preparation and past questions\n• **Mathematics** - solving equations, calculus, statistics\n• **English** - essays, comprehension, grammar\n• **Sciences** - Physics, Chemistry, Biology\n• **Social Sciences** - Economics, Government, Commerce\n• **Assignments** and projects\n\nWhat subject or topic do you need help with? Just ask me a specific question and I'll explain it clearly! 🎯";
+  }
+  if (t.includes('code') || t.includes('coding') || t.includes('programming') || t.includes('website')) {
+    return "I love coding! 💻 I can teach you:\n\n• **HTML/CSS** - Build websites\n• **JavaScript** - Make websites interactive\n• **Python** - General programming, AI\n• **React** - Modern web apps\n\nWhat do you want to learn or build? Share your code and I'll help debug it too! 🚀\n\nTip: Add the Anthropic API key to unlock my full coding assistant powers! 🔑";
+  }
+  if (t.includes('nigeria') || t.includes('naija') || t.includes('nigerian')) {
+    return "🇳🇬 Naija no dey carry last! \n\nI'm built specifically with Nigerian context in mind. I know about:\n\n• Nigerian economy, Naira, CBN policies\n• All 36 states and their capitals\n• Nigerian food, culture, music (Afrobeats 🎵)\n• JAMB, WAEC, NYSC, NIN\n• Nigerian politics and current affairs\n• Lagos, Abuja, Port Harcourt vibes\n\nWhat do you want to know about Nigeria? 🦁";
+  }
+  if (t.includes('cv') || t.includes('resume') || t.includes('job')) {
+    return "I can help you write a professional CV! 📄\n\nA good Nigerian CV should include:\n\n1. **Personal Information** - Name, phone, email, location\n2. **Objective Statement** - 2-3 lines about your goal\n3. **Education** - School, degree, year, grade\n4. **Work Experience** - Even internships count!\n5. **Skills** - Technical and soft skills\n6. **Certifications** - Any courses or training\n7. **References** - 2 referees\n\nTell me your details and I'll write you a professional CV right now! Just share:\n• Your name\n• Your education\n• Your skills\n• Any experience";
+  }
+  if (t.includes('hello') || t.includes('hi') || t.includes('hey') || t.includes('good morning') || t.includes('good evening') || t.includes('good afternoon')) {
+    const greetings = [
+      "Hey there! 👋 Welcome to Nova! I'm your personal AI assistant built for Nigerians 🇳🇬\n\nWhat can I help you with today? Whether it's school, business, coding, or just gisting — I'm here! 😊",
+      "Hello! 🤖 Nova here, ready to help!\n\nAsk me anything — no question is too big or too small. What's on your mind? 🇳🇬",
+      "Good day! 🌟 I'm Nova, your AI assistant.\n\nWhether you need help with school work, business ideas, coding, or just want to chat — I've got you! What do you need? 😊"
+    ];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }
+  if (t.includes('poem') || t.includes('write') || t.includes('story') || t.includes('essay')) {
+    return "I love creative writing! ✍️\n\nI can write for you:\n• **Poems** - Love, motivation, Nigeria themed\n• **Short stories** - Any genre\n• **Essays** - Academic or opinion\n• **Speeches** - Graduation, wedding, events\n• **Letters** - Formal or informal\n• **Song lyrics** - Afrobeats style 🎵\n\nTo get the best from me, add the API key! But tell me what you want written and I'll do my best right now!\n\nWhat do you want me to write? Give me the topic! 🖊️";
+  }
+
+  // Default response
+  const defaults = [
+    "Great question! 🤔 I'm Nova, your personal AI.\n\nFor the best experience and full AI power, make sure to add your Anthropic API key in the code. But I'm still here to help!\n\nCould you tell me more about what you need? I'll do my best to assist you! 🇳🇬",
+    "Interesting! 🧠 I'm processing your request.\n\nFor full Nova AI capabilities, add your API key. But ask me anything — school, business, coding, fun — and I'll help as much as I can right now! 😊",
+    "I hear you! 🤖 Nova is here.\n\nTo unlock my complete intelligence, add the Anthropic API key. Meanwhile, try asking me about:\n• Business ideas 💰\n• School help 📚\n• Nigerian topics 🇳🇬\n• Jokes & fun 😂\n• Writing & coding 💻"
+  ];
+  return defaults[Math.floor(Math.random() * defaults.length)];
+}
+
+function addMessage(role, text) {
+  const chat = document.getElementById('chat');
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isAI = role === 'ai';
+
+  // Format text
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:rgba(0,166,81,0.15);padding:2px 6px;border-radius:4px;font-size:12px;">$1</code>')
+    .replace(/\n/g, '<br>');
+
+  const div = document.createElement('div');
+  div.className = `msg-row ${isAI ? '' : 'user'}`;
+  div.innerHTML = `
+    <div class="msg-avatar ${isAI ? 'ai' : 'user'}">${isAI ? '🤖' : '👤'}</div>
+    <div>
+      <div class="msg-bubble ${isAI ? 'ai' : 'user'}">${formatted}</div>
+      <div class="msg-time ${isAI ? 'ai-time' : ''}">${time}</div>
+    </div>`;
+  chat.appendChild(div);
+  scrollToBottom();
+}
+
+function showTyping() {
+  isTyping = true;
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'typing-row';
+  div.id = 'typing';
+  div.innerHTML = `
+    <div class="msg-avatar ai">🤖</div>
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  chat.appendChild(div);
+  scrollToBottom();
+}
+
+function hideTyping() {
+  isTyping = false;
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function scrollToBottom() {
+  const chat = document.getElementById('chat');
+  setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
+}
+
+function openSidebar() {
+  const s = document.getElementById('sidebar');
+  s.classList.remove('hidden');
+  setTimeout(() => s.classList.add('open'), 10);
+}
+
+function closeSidebar() {
+  const s = document.getElementById('sidebar');
+  s.classList.remove('open');
+  setTimeout(() => s.classList.add('hidden'), 300);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
